@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/bojand/ghz/printer"
 	"github.com/bojand/ghz/runner"
+	"math"
 	"math/rand"
 	"os"
 	"runtime"
-	"time"
 )
 
 var (
@@ -21,8 +21,8 @@ var (
 	in = flag.Uint("in", 10, "Number of service instances.")
 	en = flag.Uint("en", 100, "Number of service endpoints.")
 
-	c = flag.Uint("c", 1, "Number of requests to run concurrently.")
-	n = flag.Uint("n", 1, "Number of requests to run. Default is 200.")
+	c = flag.Uint("c", 10, "Number of requests to run concurrently.")
+	n = flag.Uint("n", 100, "Number of requests to run. Default is 200.")
 	q = flag.Uint("q", 0, "Rate limit, in queries per second (QPS). Default is no rate limit.")
 	t = flag.Uint("t", 20, "Timeout for each request in seconds.")
 	z = flag.Duration("z", 0, "Duration of application to send requests.")
@@ -86,14 +86,20 @@ func main() {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
+	reqNum := *n
+	if *z > 0 {
+		reqNum = math.MaxInt32
+	}
 	report, err := runner.Run(
 		"ServiceMeshMetricService.collect",
-		"localhost:11800",
+		"oap:11800",
 		runner.WithProtoset("bundle.protoset"),
 		runner.WithDataFromJSON(string(b)),
 		runner.WithInsecure(true),
-		runner.WithTotalRequests(*n),
+		runner.WithTotalRequests(reqNum),
 		runner.WithConcurrency(*c),
+		runner.WithRunDuration(*z),
+		runner.WithCPUs(*cpus),
 	)
 
 	if err != nil {
@@ -107,8 +113,4 @@ func main() {
 	}
 
 	printer.Print("pretty")
-}
-
-func makeTimestamp() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
 }
