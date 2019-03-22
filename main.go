@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	cert     = flag.String("cert", "", "Client certificate file. If Omitted insecure is used.")
-	cname    = flag.String("cname", "", "Server name override - useful for self signed certs.")
 	insecure = flag.Bool("insecure", true, "Specify for non TLS connection")
+
+	h = flag.String("h", "oap:11800", "Host of target.")
 
 	sn = flag.Uint("sn", 10, "Number of services.")
 	in = flag.Uint("in", 10, "Number of service instances.")
@@ -24,9 +24,7 @@ var (
 	c = flag.Uint("c", 10, "Number of requests to run concurrently.")
 	n = flag.Uint("n", 100, "Number of requests to run. Default is 200.")
 	q = flag.Uint("q", 0, "Rate limit, in queries per second (QPS). Default is no rate limit.")
-	t = flag.Uint("t", 20, "Timeout for each request in seconds.")
 	z = flag.Duration("z", 0, "Duration of application to send requests.")
-	x = flag.Duration("x", 0, "Maximum duration of application to send requests.")
 
 	ct = flag.Uint("T", 10, "Connection timeout in seconds for the initial connection dial.")
 	kt = flag.Uint("L", 0, "Keepalive time in seconds.")
@@ -81,7 +79,6 @@ func main() {
 	}
 
 	b, err := json.Marshal(data)
-	fmt.Printf("%s", string(b))
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
@@ -92,14 +89,15 @@ func main() {
 	}
 	report, err := runner.Run(
 		"ServiceMeshMetricService.collect",
-		"oap:11800",
+		*h,
 		runner.WithProtoset("bundle.protoset"),
 		runner.WithDataFromJSON(string(b)),
-		runner.WithInsecure(true),
 		runner.WithTotalRequests(reqNum),
 		runner.WithConcurrency(*c),
 		runner.WithRunDuration(*z),
 		runner.WithCPUs(*cpus),
+		runner.WithQPS(*q),
+		runner.WithInsecure(*insecure),
 	)
 
 	if err != nil {
